@@ -22,9 +22,26 @@ pipeline {
         stage('Unit Test (Pytest)') {
             steps {
                 echo "Menjalankan pengecekan Unit Test..."
-                // Menggunakan docker python sementara agar OS Jenkins tetap bersih
+                // Menggunakan Docker Build sementara untuk menghindari isu Volume Mount DinD
                 sh '''
-                docker run --rm -v ${pwd}:/app -w /app python:3.11-slim bash -c "pip install -r requirements.txt && pytest test_main.py"
+                # 1. Buat Dockerfile khusus untuk testing secara otomatis (On-the-fly)
+                cat <<EOF > Dockerfile.test
+                FROM python:3.11-slim
+                WORKDIR /app
+                COPY requirements.txt .
+                RUN pip install --no-cache-dir -r requirements.txt
+                COPY . .
+                CMD ["pytest", "test_main.py"]
+EOF
+                
+                # 2. Build image khusus testing
+                docker build -t test-runner:${BUILD_NUMBER} -f Dockerfile.test .
+                
+                # 3. Jalankan test-nya! (Jika pytest gagal, proses build Jenkins akan otomatis merah/berhenti)
+                docker run --rm test-runner:${BUILD_NUMBER}
+                
+                # 4. Bersihkan sampah image agar memory Raspberry Pi tetap lega
+                docker rmi test-runner:${BUILD_NUMBER}
                 '''
             }
         }
