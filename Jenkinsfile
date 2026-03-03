@@ -24,7 +24,7 @@ pipeline {
                 echo "Menjalankan pengecekan Unit Test..."
                 // Menggunakan docker python sementara agar OS Jenkins tetap bersih
                 sh '''
-                docker run --rm -v ${WORKSPACE}:/app -w /app python:3.11-slim bash -c "pip install -r requirements.txt && pytest test_main.py"
+                docker run --rm -v ${pwd}:/app -w /app python:3.11-slim bash -c "pip install -r requirements.txt && pytest test_main.py"
                 '''
             }
         }
