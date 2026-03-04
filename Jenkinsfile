@@ -51,8 +51,7 @@ EOF
             steps {
                 echo "Membungkus aplikasi FastAPI menjadi Docker Image..."
                 // Build dengan 2 tag: spesifik (nomor build) dan 'latest'
-                sh "docker build -t ${ECR_URL}/${REPO_NAME}:latest -t ${ECR_URL}/${REPO_NAME}:${IMAGE_TAG} ."
-            }
+                sh "docker build --platform linux/amd64 -t ${ECR_URL}/${REPO_NAME}:latest -t ${ECR_URL}/${REPO_NAME}:${IMAGE_TAG} ."            }
         }
 
         // TAHAP 4: Push ke Brankas AWS (ECR)
