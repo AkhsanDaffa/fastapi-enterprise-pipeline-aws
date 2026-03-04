@@ -77,6 +77,42 @@ EOF
                 }
             }
         }
+
+        // TAHAP 5: Deploy ke EC2 secara Otomatis via SSH
+        stage('Deploy to EC2') {
+            environment {
+                EC2_IP = '52.77.244.20'
+            }
+            steps {
+                echo "Meluncurkan aplikasi ke Production Server (EC2)..."
+
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'],
+                    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
+                ]) {
+                    sh '''
+                    # 1. Dapatkan password brankas ECR menggunakan trik Python Alpine
+                    ECR_PASS=$(docker run --rm -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY python:3.11-alpine sh -c "pip install --quiet awscli && aws ecr get-login-password --region $AWS_REGION")
+
+                    # 2. Remote EC2 via SSH dan berikan instruksi eksekusi
+                    ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@$EC2_IP << EOF
+                        # Login ke ECR dari dalam EC2
+                        echo $ECR_PASS | docker login --username AWS --password-stdin $ECR_URL
+                        
+                        # Matikan dan hapus aplikasi versi lama (jika ada)
+                        docker stop fastapi-prod || true
+                        docker rm fastapi-prod || true
+                        
+                        # Tarik versi terbaru dari brankas ECR
+                        docker pull $ECR_URL/$REPO_NAME:latest
+                        
+                        # Jalankan aplikasi versi terbaru! (Port 80 di luar diarahkan ke Port 8000 di dalam)
+                        docker run -d --name fastapi-prod -p 80:8000 --restart always $ECR_URL/$REPO_NAME:latest
+EOF
+                    '''
+                }
+            }
+        }
     }
     
     // TAHAP AKHIR: Membersihkan sisa-sisa file setelah selesai
