@@ -51,8 +51,7 @@ EOF
             steps {
                 echo "Membungkus aplikasi FastAPI menjadi Docker Image..."
                 // Build dengan 2 tag: spesifik (nomor build) dan 'latest'
-                sh "docker build --platform linux/amd64 -t ${ECR_URL}/${REPO_NAME}:latest -t ${ECR_URL}/${REPO_NAME}:${IMAGE_TAG} ."            }
-        }
+                sh "docker build -t ${ECR_URL}/${REPO_NAME}:latest -t ${ECR_URL}/${REPO_NAME}:${IMAGE_TAG} ."        }
 
         // TAHAP 4: Push ke Brankas AWS (ECR)
         stage('Push to AWS ECR') {
@@ -80,7 +79,7 @@ EOF
         // TAHAP 5: Deploy ke EC2 secara Otomatis via SSH
         stage('Deploy to EC2') {
             environment {
-                EC2_IP = '52.77.244.20'
+                EC2_IP = '13.250.96.63'
             }
             steps {
                 echo "Meluncurkan aplikasi ke Production Server (EC2)..."
